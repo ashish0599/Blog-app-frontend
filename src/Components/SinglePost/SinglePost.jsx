@@ -1,0 +1,146 @@
+import React, { useContext, useEffect, useState } from "react";
+import "./SinglePost.css";
+// import PostImg from "../../image/cat.jpg";
+import { Delete, Edit } from "@material-ui/icons";
+import { useLocation } from "react-router";
+import axios from "axios";
+import { Link } from "react-router-dom";
+import { Context } from "../../Context/Context";
+import Loader from "react-loader-spinner";
+
+function SinglePost() {
+  const [post, setPost] = useState({});
+  const location = useLocation();
+  const { user } = useContext(Context);
+
+  //update states
+  const [title, setTitle] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [desc, setDesc] = useState("");
+  const [updatePost, setUpdatePost] = useState(false);
+
+  const PF = "https://blog-app-08.herokuapp.com/images/";
+
+  // console.log(location.pathname.split("/")[2]);
+  const postId = location.pathname.split("/")[2];
+
+  //postId useEffect
+  useEffect(() => {
+    //getpost
+    const getSinglePost = async () => {
+      const res = await axios.get(
+        `https://blog-app-08.herokuapp.com/api/posts/${postId}`
+      );
+      console.log(res.data);
+      setPost(res.data.post);
+      setTitle(res.data.post.title);
+      setDesc(res.data.post.desc);
+      setLoading(false);
+    };
+    getSinglePost();
+  }, [postId]);
+
+  console.log(post.photo);
+  // console.log(user);
+  // console.log(post.username === user.username);
+
+  //delete post
+  const handleDelete = async () => {
+    try {
+      console.log("delete in process");
+      console.log("post Id", postId);
+      const res = await axios.delete(
+        `https://blog-app-08.herokuapp.com/api/posts/${post._id}`,
+        { data: { username: user.username } }
+      );
+      console.log(res.data);
+
+      window.location.replace("/");
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
+  //update post
+  const handleUpdate = async () => {
+    try {
+      await axios.put(
+        `https://blog-app-08.herokuapp.com/api/posts/${post._id}`,
+        {
+          username: user.username,
+          title,
+          desc,
+        }
+      );
+      setUpdatePost(false);
+    } catch (error) {}
+  };
+
+  return (
+    <div className="singlePost">
+      {loading ? (
+        <div className="d-flex justify-content-center m-5">
+          <Loader type="TailSpin" color="#25283D" height={100} width={100} />
+        </div>
+      ) : (
+        <div className="singlePostWrapper">
+          {
+            post.photo && (
+              <img src={PF + post.photo} alt="" className="singlePostImg" />
+            )
+        
+          }
+
+          {updatePost ? (
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              autoFocus
+              className="singlePostTitle border"
+            />
+          ) : (
+            <h1 className="singlePostTitle">
+              {title}
+              {user && user.username === post.username && (
+                <div className="singlePostEdit">
+                  <Edit color="warning" onClick={() => setUpdatePost(true)} />
+                  <Delete style={{ color: "danger" }} onClick={handleDelete} />
+                </div>
+              )}
+            </h1>
+          )}
+
+          <div className="singlePostInfo">
+            <span className="author">
+              Author:
+              <Link className="link" to={`/?user=${post.username}`}>
+                <b>{post.username}</b>
+              </Link>
+            </span>
+            <span className="date">
+              {new Date(post.createdAt).toDateString()}
+            </span>
+          </div>
+          {updatePost ? (
+            <input
+              type="text"
+              className="singlePostDesc border"
+              value={desc}
+              onChange={(e) => setDesc(e.target.value)}
+            />
+          ) : (
+            <p className="singlePostDesc">{post.desc}</p>
+          )}
+          {updatePost && (
+            <button className="update" type="submit" onClick={handleUpdate}>
+              Update
+            </button>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+export default SinglePost;
